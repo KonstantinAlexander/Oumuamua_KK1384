@@ -4,7 +4,7 @@
 
 /* 
     Method that convert cylindrical coordinates into cartesian coordinates
-    https://ru.wikipedia.org/wiki/Цилиндрическая_система_координат
+    https://ru.wikipedia.org/wiki/Р¦РёР»РёРЅРґСЂРёС‡РµСЃРєР°СЏ_СЃРёСЃС‚РµРјР°_РєРѕРѕСЂРґРёРЅР°С‚
     https://www.minorplanetcenter.net/iau/lists/ObsCodesF.html
 */
 CartesianCoord Converter::cylindrical_to_cartesian(CylindricalCoord coordinates)
@@ -235,7 +235,7 @@ std::map<std::string, std::vector<IntegrationVector>> Converter::interpolation_c
 
 
 /*
-    Сonvert spherical coordinates to geocentric
+    РЎonvert spherical coordinates to geocentric
 */
 void Converter::spherical_to_geocentric(Observation* observation)
 {
@@ -422,7 +422,7 @@ std::vector<IntegrationVector> Converter::interpolation_model_on_grid(std::vecto
                 Date new_date = *observation_vector[i].get_date();
                 interpolated_vector.set_date(new_date);
                 interpolated_vector.set_barycentric_position(interpolation_alpha_term, interpolation_beta_term, interpolation_gamma_term);
-                interpolated_vector.set_velocity(0, 0, 0);
+                interpolated_vector.set_velocity(interpolation_orbits[j].get_velocity().get_vx(), interpolation_orbits[j].get_velocity().get_vy(), interpolation_orbits[j].get_velocity().get_vz());
                 result.push_back(interpolated_vector);
                 break;
             }

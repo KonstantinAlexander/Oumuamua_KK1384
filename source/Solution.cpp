@@ -76,11 +76,11 @@ void Solution::integrate()
         converter.barycentric_to_spherical(&base_measures[i]);
     }
 
-    write_to_file(model_measures, base_measures);
+    write_result(model_measures, base_measures);
 }
 
 
-void Solution::write_to_file(std::vector<IntegrationVector> model, std::vector<IntegrationVector> base_measures)
+void Solution::write_result(std::vector<IntegrationVector> model, std::vector<IntegrationVector> base_measures)
 {
     std::ofstream model_out;
     model_out.open(model_file);
@@ -91,7 +91,8 @@ void Solution::write_to_file(std::vector<IntegrationVector> model, std::vector<I
         for (int ind = 0; ind < model.size(); ind++)
         {
             counter += 1;
-            model_out << std::setprecision(9) << model[ind].get_date().get_MJD() << " " << model[ind].get_spherical_position().get_longitude() << " " << model[ind].get_spherical_position().get_latitude() << "\n";
+            model_out << std::setprecision(9) << model[ind].get_date().get_MJD() << "\tlong= " << model[ind].get_spherical_position().get_longitude() << "\tlati= " << model[ind].get_spherical_position().get_latitude() <<
+                "\tvx(km/s)= " << model[ind].get_velocity().get_vx() / 86400 << "\tvy(km/s)= " << model[ind].get_velocity().get_vy() / 86400 << "\tvz(km/s)= " << model[ind].get_velocity().get_vz() / 86400 << '\n';
         }
         model_out.close();
         std::cout << "Model:: " << counter << " strings was written in the file {" + base_file + "}" << std::endl;
@@ -110,7 +111,7 @@ void Solution::write_to_file(std::vector<IntegrationVector> model, std::vector<I
         for (int ind = 0; ind < base_measures.size(); ind++)
         {
             counter += 1;
-            base_out << std::setprecision(9) << base_measures[ind].get_date().get_MJD() << " " << base_measures[ind].get_spherical_position().get_longitude() << " " << base_measures[ind].get_spherical_position().get_latitude() << "\n";
+            base_out << std::setprecision(9) << base_measures[ind].get_date().get_MJD() << "\tlong= " << base_measures[ind].get_spherical_position().get_longitude() << "\tlati= " << base_measures[ind].get_spherical_position().get_latitude() << "\n";
         }
         base_out.close();
         std::cout << "Base:: " << counter << " strings was written in the file {" + base_file + "}" << std::endl;
