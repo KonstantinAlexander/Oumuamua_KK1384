@@ -1,7 +1,7 @@
 all: oumuamua
 
-oumuamua: libsofa.a main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CelestialCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o
-	g++ main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CelestialCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o sofa/src/libsofa_c.a -o oumuamua
+oumuamua: libsofa.a main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o
+	g++ main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o sofa/src/libsofa_c.a -o oumuamua
 
 main.o: ./source/main.cpp
 	g++ -c ./source/main.cpp
@@ -23,9 +23,6 @@ BarycentricCoord.o: ./source/measure/coords/BarycentricCoord.cpp
 
 CartesianCoord.o: ./source/measure/coords/CartesianCoord.cpp
 	g++ -c ./source/measure/coords/CartesianCoord.cpp
-
-CelestialCoord.o: ./source/measure/coords/CelestialCoord.cpp
-	g++ -c ./source/measure/coords/CelestialCoord.cpp
 
 CylindricalCoord.o: ./source/measure/coords/CylindricalCoord.cpp
 	g++ -c ./source/measure/coords/CylindricalCoord.cpp
