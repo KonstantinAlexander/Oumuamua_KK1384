@@ -12,11 +12,7 @@ void DataReader::read_observations()
         {
             if (line[14] != 's') 
             {
-
                 Date observation_date(line.substr(15, 17));
-                observation_date.set_UTC_from_day_fraction();
-                observation_date.set_JD();
-
                 Observation observation;
                 observation.set_date(observation_date);
                 observation.set_code(line.substr(77, 3));
@@ -32,7 +28,7 @@ void DataReader::read_observations()
     }
 
     file.close();
-    std::cout << "Observation readed: " << observations.size() << " \n";
+    std::cout << "Observation read: " << observations.size() << " \n";
 }
 
 
@@ -63,7 +59,7 @@ void DataReader::read_observatory_data()
     }
 
     file.close();
-    std::cout << "Observatory readed: " << observatory.size() << " \n";
+    std::cout << "Observatory read: " << observatory.size() << " \n";
 }
 
 
@@ -95,7 +91,7 @@ void DataReader::read_hubble_data()
     }
 
     file.close();
-    std::cout << "Hubble readed: " << interpolation_hubble.size() << " \n";
+    std::cout << "Hubble read: " << interpolation_hubble.size() << " \n";
 }
 
 
@@ -111,9 +107,6 @@ void DataReader::read_interpolation_time_data()
         {
             InterpolationTime time;
             Date observation_date(line.substr(0, 12));
-
-            observation_date.set_UTC_from_day_fraction();
-            observation_date.set_JD();
             time.set_date(observation_date);
             time.set_TT_TDB(line.substr(13, 9));
             interpolation_time.push_back(time);
@@ -125,7 +118,7 @@ void DataReader::read_interpolation_time_data()
     }
 
     file.close();
-    std::cout << "Interpolation Time Readed: " << interpolation_time.size() << " \n";
+    std::cout << "Interpolation time read: " << interpolation_time.size() << " \n";
 }
 
 
@@ -142,15 +135,13 @@ void DataReader::read_interpolation_center_planet(std::string filename, std::str
         {
             IntegrationVector planet_data;
             Date date(line.substr(0, 13));
-            date.set_UTC_from_day_fraction();
-            date.set_JD();
             planet_data.set_date(date);
 
             std::vector<double> planet_position = help.split(line.substr(13, line.length() - 13), ' ', '\0');
             planet_data.set_barycentric_position(planet_position[0], planet_position[1], planet_position[2]);
             planet.push_back(planet_data);
         }
-        std::cout << "Planet <" << name << "> readed " << planet.size() << " \n";
+        std::cout << "Planet <" << name << "> read " << planet.size() << " \n";
         InterpolationPlanets[name] = planet;
     }
     else
@@ -188,7 +179,7 @@ void DataReader::read_earth_rotation()
     }
 
     file.close();
-    std::cout << "Earth rotation Readed: " << earth_rotation.size() << " \n";
+    std::cout << "Earth rotation information read: " << earth_rotation.size() << " \n";
 }
 
 

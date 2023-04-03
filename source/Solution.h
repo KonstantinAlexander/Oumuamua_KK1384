@@ -2,6 +2,7 @@
 #include "./data_processing/DataReader.h"
 #include "./data_processing/Converter.h"
 #include "./data_processing/Integration.h"
+#include "./data_processing/LightCorrector.h"
 #include <iomanip>
 
 
@@ -17,6 +18,7 @@ private:
 
     IntegrationVector initial_condition;
     Integration integration;
+    LightCorrector light_corrector;
     
     std::string model_file = "./output_data/model_measure.txt";
     std::string base_file = "./output_data/base_measure.txt";
@@ -29,6 +31,5 @@ public:
     void convert_observatory();
     // integration
     void integrate();
-    // outputting data
-    void write_result(std::vector<IntegrationVector>, std::vector<IntegrationVector>);
+    void write_result(std::vector<IntegrationVector> model, std::vector<IntegrationVector> base_measures, std::vector<SphericalCoord> model_spherical, std::vector<SphericalCoord> base_spherical);
 };
