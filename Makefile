@@ -1,7 +1,7 @@
 all: oumuamua
 
-oumuamua: libsofa.a main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o
-	g++ main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o sofa/src/libsofa_c.a -o oumuamua
+oumuamua: libsofa.a main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o
+	g++ main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o sofa/src/libsofa_c.a -o oumuamua
 
 main.o: ./source/main.cpp
 	g++ -c ./source/main.cpp
@@ -56,6 +56,9 @@ Date.o: ./source/measure/time/Date.cpp
 
 InterpolationTime.o: ./source/measure/time/InterpolationTime.cpp
 	g++ -c ./source/measure/time/InterpolationTime.cpp
+
+LightCorrector.o: ./source/data_processing/LightCorrector.cpp
+	g++ -c ./source/data_processing/LightCorrector.cpp
 
 libsofa.a:
 	$(MAKE) -C ./sofa/src

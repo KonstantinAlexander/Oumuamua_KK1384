@@ -30,19 +30,18 @@ private:
 public:
     // convert
     CartesianCoord cylindrical_to_cartesian(CylindricalCoord);
-    GeocentricCoord cartesian_to_geocentric(CartesianCoord, Date, EarthRotation);
-    void hours_to_degrees_system(Observation*);
-    void barycentric_to_spherical(IntegrationVector* vector, std::vector<SphericalCoord>* coords);
-    void spherical_to_geocentric(Observation*);
+    GeocentricCoord terrestial_to_geocentric_celestial(CartesianCoord, Date, EarthRotation);
+    void spherical_hours_to_spherical_radians(Observation*);
+    void barycentric_cartesian_to_barycentric_spherical(IntegrationVector* vector, std::vector<SphericalCoord>* coords);
+    void barycentric_spherical_to_geocentric_cartesian(Observation*);
+    void cartesian_geocentric_to_cartesian_barycentric(std::vector<Observation>*, std::map<std::string, Observatory>*, std::vector<EarthRotation>*, std::vector<HubbleData>, std::vector<IntegrationVector>);
     void UTC_to_TT(Date*);
-    void interpolation_time(Date* date_start, std::vector<Observation>* observations, std::vector<InterpolationTime> time);
-    void geo_to_bary_for_base_measure(std::vector<Observation>*, std::map<std::string, Observatory>*, std::vector<EarthRotation>*, std::vector<HubbleData>, std::vector<IntegrationVector>);
 
 
     // interpolation
-    void interpolation_time(std::vector<Observation>*, std::vector<InterpolationTime>);
+    void interpolation_time(Date* date_start, std::vector<Observation>* observations, std::vector<InterpolationTime> time);
     BarycentricCoord interpolation_Earth_center(Date date_current, Date date_start, std::vector<IntegrationVector> earth_position);
-    BarycentricCoord interpolation_bary_helper(IntegrationVector position_previous, IntegrationVector position_current, Date date);
+    BarycentricCoord interpolation_helper(IntegrationVector position_previous, IntegrationVector position_current, Date date);
     std::vector<IntegrationVector> interpolation_model_on_grid(std::vector<Observation> observation_vector, Date* date_start, std::vector<IntegrationVector> interpolation_orbits);
     std::map<std::string, std::vector<IntegrationVector>> interpolation_center_planet(Date*, Date*, double, std::map<std::string, std::vector<IntegrationVector>>);
 
