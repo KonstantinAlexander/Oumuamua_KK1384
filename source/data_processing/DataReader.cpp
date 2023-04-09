@@ -19,6 +19,21 @@ void DataReader::read_observations()
                 observation.set_ascension_from_string(line.substr(32, 12));
                 observation.set_declination_from_string(line.substr(44, 12));
                 observations.push_back(observation);
+
+                //@CHECK
+                //std::cout << "line was: " <<
+                //    line.substr(15, 17) << " "
+                //    << line.substr(77, 3) << " " 
+                //    << line.substr(32, 12) << " "
+                //    << line.substr(44, 12) << "\n";
+
+                //std::cout << "observation: mjd=" << observation.get_date()->get_MJD() << " code=" << observation.get_code() << " RA="
+                //    << observation.get_spherical_position().get_RA_in_hours_system()[0] << " "
+                //    << observation.get_spherical_position().get_RA_in_hours_system()[1] << " "
+                //    << observation.get_spherical_position().get_RA_in_hours_system()[2] << " DEC="
+                //    << observation.get_spherical_position().get_DEC_in_hours_system()[0] << " "
+                //    << observation.get_spherical_position().get_DEC_in_hours_system()[1] << " "
+                //    << observation.get_spherical_position().get_DEC_in_hours_system()[2] << "\n\n\n";
             }
         }
     }
@@ -29,6 +44,35 @@ void DataReader::read_observations()
 
     file.close();
     std::cout << "Observation read: " << observations.size() << " \n";
+}
+
+void DataReader::read_JPL_base_mesuare()
+{
+    std::ifstream file(this->JPL_mesuare_file);
+    std::string line;
+
+    if (file.is_open())
+    {
+        while (getline(file, line))
+        {
+            Date JPL_date;
+            JPL_date.set_MJD(std::stod(line.substr(0,17)) - 2400000.5);
+            Observation observation;
+            observation.set_date(JPL_date);
+            double alpha = std::stod(line.substr(52, 21));
+            double beta = std::stod(line.substr(76, 21));
+            double gamma = std::stod(line.substr(100, 21));
+            //std::cout << "alpha: " << alpha << "|" << line.substr(52, 21) << "\tbeta: " << beta << "|" << line.substr(76, 21) << "\tgamma: " << gamma << "|" << line.substr(100, 21) << std::endl;
+            observation.set_barycentric(alpha, beta, gamma);
+            JPL_mesuare.push_back(observation);
+        }
+    }
+    else
+    {
+        std::cout << "Error reading file! {" << JPL_mesuare_file << "}\n";
+    }
+    file.close();
+    std::cout << "JPL_mesuare read: " << JPL_mesuare.size() << " \n";
 }
 
 
@@ -51,6 +95,18 @@ void DataReader::read_observatory_data()
             observatory_position.set_sin_from_string(line.substr(21, 9));
 
             observatory[code].set_cylindrical(observatory_position);
+
+            //@CHECK
+            /*std::cout << "line was: " << line.substr(0, 3) << " "
+                << line.substr(4, 9) << " " <<
+                line.substr(13, 8) << " " <<
+                line.substr(21, 9) << "\n";
+            
+            std::cout << "observatory: code=" << code << " "
+                << "longitude=" << observatory[code].get_cylindric().get_longitude() << " "
+                << "cos=" << observatory[code].get_cylindric().get_cos() << " "
+                << "sin=" << observatory[code].get_cylindric().get_sin() << "\n\n";*/
+
         }
     }
     else
@@ -257,4 +313,9 @@ std::vector<IntegrationVector>* DataReader::get_planet_by_name(std::string name)
 std::map<std::string, Observatory>* DataReader::get_obsevatory_map() 
 {
     return &observatory;
+}
+
+std::vector<Observation>* DataReader::get_JPL()
+{
+    return &this->JPL_mesuare;
 }
