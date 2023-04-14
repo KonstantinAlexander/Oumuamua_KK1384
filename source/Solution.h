@@ -3,6 +3,7 @@
 #include "./data_processing/Converter.h"
 #include "./data_processing/Integration.h"
 #include "./data_processing/LightCorrector.h"
+#include "./data_processing/Interpolator.h"
 #include <iomanip>
 
 
@@ -16,7 +17,10 @@ private:
     Converter converter;
     DataReader data_reader;
     Integration integration;
+    Interpolator interpolator;
     LightCorrector light_corrector;
+
+
     IntegrationVector initial_condition;
 
     std::string model_file = "./output_data/model_measure.txt";
@@ -29,7 +33,7 @@ public:
     void convert_observations();
     void convert_observatory();
     // integration
-    void integrate();
+    void direct_problem();
     void write_result(std::vector<IntegrationVector>* model, std::vector<IntegrationVector>* base_measures, std::vector<SphericalCoord>* model_spherical, std::vector<SphericalCoord>* base_spherical);
     std::vector<IntegrationVector> interolate_JPL();
 };

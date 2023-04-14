@@ -2,6 +2,14 @@
 
 
 
+Converter::Converter(Interpolator* interpolator)
+{
+    this->interpolator = interpolator;
+}
+
+
+
+
 /*
     Method that convert cylindrical coordinates into cartesian coordinates
     https://ru.wikipedia.org/wiki/Цилиндрическая_система_координат
@@ -23,17 +31,6 @@ CartesianCoord Converter::cylindrical_to_cartesian(CylindricalCoord coordinates)
     cartesian_coordinates.set_x(std::cos(angle) * coordinates.get_cos() * EARTH_RADIUS);
     cartesian_coordinates.set_y(std::sin(angle) * coordinates.get_cos() * EARTH_RADIUS);
     cartesian_coordinates.set_z(coordinates.get_sin() * EARTH_RADIUS);
-
-    //@CHECK
-    //std::cout << "cylindrical was: "
-    //    << "longi=" << coordinates.get_longitude()
-    //    << " cos=" << coordinates.get_cos()
-    //    << " sin=" << coordinates.get_sin() << "\n";
-    
-    //std::cout << "cartesian got: "
-    //    << "x=" << cartesian_coordinates.get_x()
-    //    << " y=" << cartesian_coordinates.get_y()
-    //    << " z=" << cartesian_coordinates.get_z() << "\n\n";
 
     return cartesian_coordinates;
 }
@@ -67,45 +64,6 @@ void Converter::UTC_to_TT(Date* date)
 
         date->set_TT(date->get_MJD() + (deltat + 32.184) / 86400); // TT in days
 
-        //@CHECK
-        //std::cout << "Year=" << date->get_year() << " month=" << date->get_month() << " day=" << date->get_day() << " seconds=" << date->get_seconds() << " day_fraction=" << date->get_day_fraction() <<
-        //    " deltat=" << deltat << " s." << " MJD=" << date->get_MJD() << " TT=" << date->get_TT() << "\n\n";
-    }
-}
-
-
-
-/*
-    Interpolation of time on a uniform grid for observations
-*/
-void Converter::interpolation_time(Date* date_start, std::vector<Observation>* observations, std::vector<InterpolationTime> time)
-{
-    double interpolation_time_term;
-    int last = 0;
-    for (int i = 0; i < observations->size(); i++)
-    {
-        int expected_j = 10 * int(observations->at(i).get_date()->get_day_fraction() * 10) + (int(observations->at(i).get_date()->get_MJD()) - int(time[0].get_date().get_MJD())) * 100 + 5; // constatnt find j
-        if (not (observations->at(i).get_date()->get_MJD() < time[expected_j].get_date().get_MJD() and observations->at(i).get_date()->get_MJD() > time[expected_j - 1].get_date().get_MJD())) //checking j
-        {
-            expected_j += 1;
-        }
-        double f_current = time[expected_j].get_TT_TDB();
-        double f_previous = time[expected_j - 1].get_TT_TDB();
-        double t_current = time[expected_j].get_date().get_MJD();
-        double t_previous = time[expected_j - 1].get_date().get_MJD();
-        double t_interpolate = observations->at(i).get_date()->get_MJD();
-
-        interpolation_time_term = f_previous + (f_current - f_previous) / (t_current - t_previous) * (t_interpolate - t_previous);
-        /*  interpolation_time_term = TT - TDB
-            we want to get to TDB, so multiply on -1 both sides:
-            - interpolation_time_term = TDB - TT
-            add to both sides TT, then
-            TDB = TT - interpolation_time_term
-
-            TT in days, interpolation_time_term in ms, so we should interpolation_time_term / 86400000
-        */
-        double TDB = observations->at(i).get_date()->get_TT() - (interpolation_time_term / 86400000);
-        observations->at(i).get_date()->set_TDB(TDB);
     }
 }
 
@@ -177,13 +135,6 @@ void Converter::barycentric_spherical_to_geocentric_cartesian(Observation* obser
     iauS2c(observation->get_spherical_position().get_right_ascension(), observation->get_spherical_position().get_declination(), cartesian_coord);
 
     observation->set_geocentric(cartesian_coord[0] * EARTH_RADIUS, cartesian_coord[1] * EARTH_RADIUS, cartesian_coord[2] * EARTH_RADIUS);
-
-    //@CHECK
-    /*std::cout << "observation in spherical: " << "RA=" << observation->get_spherical_position().get_right_ascension() << " DEC=" << observation->get_spherical_position().get_declination() << "\n";
-    std::cout << "observation in geocentric: " 
-        << "x=" << observation->get_geocentric().get_x() 
-        << " y=" << observation->get_geocentric().get_y()
-        << " z=" << observation->get_geocentric().get_z() << "\n\n";*/
 }
 
 
@@ -193,17 +144,6 @@ void Converter::barycentric_spherical_to_geocentric_cartesian(Observation* obser
 */
 void Converter::spherical_hours_to_spherical_radians(Observation* observation)
 {
-    //@CHECK
-    //std::cout << "observation: " << "MJD=" << observation->get_date()->get_MJD() << "\nRA in hours system="
-    //    << observation->get_spherical_position().get_RA_in_hours_system()[0] << " "
-    //    << observation->get_spherical_position().get_RA_in_hours_system()[1] << " "
-    //    << observation->get_spherical_position().get_RA_in_hours_system()[2] << " "
-    //    << "\nDEC in hours system="
-    //    << observation->get_spherical_position().get_DEC_in_hours_system()[0] << " "
-    //    << observation->get_spherical_position().get_DEC_in_hours_system()[1] << " "
-    //    << observation->get_spherical_position().get_DEC_in_hours_system()[2] << "\n";
-
-
     // Convert from hours-system to degrees:
     // https://planetcalc.ru/7663/
     double* RA_in_hours_system = observation->get_spherical_position().get_RA_in_hours_system();
@@ -226,12 +166,6 @@ void Converter::spherical_hours_to_spherical_radians(Observation* observation)
     arcseconds = (arcseconds - int(arcseconds)) * 60;
 
     double ascension;
-    //@CHECK
-    /*std::cout << "before ASCENTION: "
-        << " sign=" << sign
-        << " degrees=" << degrees
-        << " arcminutes=" << arcminutes
-        << " arcseconds=" << arcseconds << "\n";*/
     iauAf2a('+', degrees, arcminutes, arcseconds, &ascension);
 
     double* DEC_in_hours_system = observation->get_spherical_position().get_DEC_in_hours_system();
@@ -255,23 +189,15 @@ void Converter::spherical_hours_to_spherical_radians(Observation* observation)
     arcseconds = (arcseconds - int(arcseconds)) * 60;
 
     double declination;
-    //@CHECK
-   /* std::cout << "before DECLINATION: "
-        << " sign=" << sign
-        << " degrees=" << degrees
-        << " arcminutes=" << arcminutes
-        << " arcseconds=" << arcseconds << "\n";*/
     iauAf2a(sign, degrees, arcminutes, arcseconds, &declination);
 
-    while ((ascension > PI) or (ascension < - PI)) {
+    while ((ascension > PI) or (ascension < - PI)) 
+    {
         int sign = ascension > PI ? -1 : 1;
         ascension = ascension + sign * 2 * PI;
     }
 
     observation->set_spherical(ascension, declination);
-
-    //@CHECK
-    // std::cout << "RESULT: RA in radians=" << ascension << " DEC in radians=" << declination << "\n\n";
 }
 
 
@@ -282,16 +208,13 @@ void Converter::spherical_hours_to_spherical_radians(Observation* observation)
 */
 void Converter::barycentric_cartesian_to_barycentric_spherical(IntegrationVector* vector, std::vector<SphericalCoord>* coords)
 {
-    //std::cout << "Before convertation:" << vector->get_barycentric_position().get_alpha() << "|" << vector->get_barycentric_position().get_beta() << "|" << vector->get_barycentric_position().get_gamma() << std::endl;
-    double barycentric_coord[3] = { vector->get_barycentric_position().get_alpha(), vector->get_barycentric_position().get_beta(), vector->get_barycentric_position().get_gamma() };
+    double barycentric_coord[3] = { vector->get_barycentric().get_x(), vector->get_barycentric().get_y(), vector->get_barycentric().get_z() };
     double right_ascension;
     double declination;
 
     iauC2s(barycentric_coord, &right_ascension, &declination);
-    //std::cout << "After convertation:" << right_ascension << "|" << declination << std::endl;
     SphericalCoord temp_coords;
-    temp_coords.set_declination(declination);
-    temp_coords.set_right_ascension(right_ascension);
+    temp_coords.set_spherical(right_ascension, declination);
     coords->push_back(temp_coords);
 }
 
@@ -314,9 +237,9 @@ void Converter::cartesian_geocentric_to_cartesian_barycentric(std::vector<Observ
         {
             // find earth rotation info for current date observation
             EarthRotation earth_rotation_info;
-            for (int j = 0; j < earth_rotation->size(); j++) 
+            for (int j = 0; j < earth_rotation->size(); j++)
             {
-                if (earth_rotation->at(j).get_MJD() >= current_date->get_MJD()) 
+                if (earth_rotation->at(j).get_MJD() >= current_date->get_MJD())
                 {
                     earth_rotation_info = earth_rotation->at(j);
                     break;
@@ -327,115 +250,24 @@ void Converter::cartesian_geocentric_to_cartesian_barycentric(std::vector<Observ
             GeocentricCoord geocentric_observatory_position = terrestial_to_geocentric_celestial(current_observatory->get_cartesian(), *current_date, earth_rotation_info);
             // interpolation observatory coordinates to Earth center
             // [barycentric position of the center of the Earth] + [celestial geocentric position of the observatory]
-            BarycentricCoord interpolated_Earth_center = interpolation_Earth_center(*current_date, *start_date, earth_position);
-            observatory_position.set_alpha(interpolated_Earth_center.get_alpha() + geocentric_observatory_position.get_x());
-            observatory_position.set_beta(interpolated_Earth_center.get_beta() + geocentric_observatory_position.get_y());
-            observatory_position.set_gamma(interpolated_Earth_center.get_gamma() + geocentric_observatory_position.get_z());
+            BarycentricCoord interpolated_Earth_center = interpolator->interpolation_Earth_center(*current_date, *start_date, earth_position);
+            observatory_position.set_all_coords(interpolated_Earth_center.get_x() + geocentric_observatory_position.get_x(), interpolated_Earth_center.get_y() + geocentric_observatory_position.get_y(), interpolated_Earth_center.get_z() + geocentric_observatory_position.get_z());
+            /*observatory_position.set_x(interpolated_Earth_center.get_x() + geocentric_observatory_position.get_x());
+            observatory_position.set_y(interpolated_Earth_center.get_y() + geocentric_observatory_position.get_y());
+            observatory_position.set_z(interpolated_Earth_center.get_z() + geocentric_observatory_position.get_z());*/
+
         }
         else
         {
             GeocentricCoord geocentric_hubble_position = find_needed_hubble_data(*current_date, hubble_data);
             // [barycentric position of the center of the Earth] + [celestial geocentric position of the observatory]
-            BarycentricCoord interpolated_Earth_center = interpolation_Earth_center(*current_date, *start_date, earth_position);
-            observatory_position.set_alpha(interpolated_Earth_center.get_alpha() + geocentric_hubble_position.get_x());
-            observatory_position.set_beta(interpolated_Earth_center.get_beta() + geocentric_hubble_position.get_y());
-            observatory_position.set_gamma(interpolated_Earth_center.get_gamma() + geocentric_hubble_position.get_z());
+            BarycentricCoord interpolated_Earth_center = interpolator->interpolation_Earth_center(*current_date, *start_date, earth_position);
+            observatory_position.set_all_coords(interpolated_Earth_center.get_x() + geocentric_hubble_position.get_x(), interpolated_Earth_center.get_y() + geocentric_hubble_position.get_y(), interpolated_Earth_center.get_z() + geocentric_hubble_position.get_z());
+           /* observatory_position.set_x(interpolated_Earth_center.get_x() + geocentric_hubble_position.get_x());
+            observatory_position.set_y(interpolated_Earth_center.get_y() + geocentric_hubble_position.get_y());
+            observatory_position.set_z(interpolated_Earth_center.get_z() + geocentric_hubble_position.get_z());*/
         }
-
-        // set position for observatory
-        current_observatory->set_barycentric(observatory_position);
+        observations->at(i).set_observatory_position(observatory_position);
     }
 }
 
-
-
-/*
-    Interpolation numerical integraion result (model) on the time grid
-*/
-std::vector<IntegrationVector> Converter::interpolation_model_on_grid(std::vector<Observation> observation_vector, Date* date_start, std::vector<IntegrationVector> interpolation_orbits)
-{
-    int last = 0;
-    std::vector<IntegrationVector> result;
-    for (int i = 0; i < observation_vector.size(); i++)
-    {
-        IntegrationVector interpolated_vector;
-        int j = int((observation_vector[i].get_date()->get_MJD() - date_start->get_MJD()) / STEP) + 2;
-        BarycentricCoord interpolated_position = interpolation_helper(interpolation_orbits[j], interpolation_orbits[j - 1], *observation_vector[i].get_date());
-        Date new_date = *observation_vector[i].get_date();
-        interpolated_vector.set_date(new_date);
-        interpolated_vector.set_barycentric_position(interpolated_position.get_alpha(), interpolated_position.get_beta(), interpolated_position.get_gamma());
-        interpolated_vector.set_velocity(interpolation_orbits[j].get_velocity().get_vx(), interpolation_orbits[j].get_velocity().get_vy(), interpolation_orbits[j].get_velocity().get_vz());
-        result.push_back(interpolated_vector);
-    }
-    return result;
-}
-
-
-/*
-    Interpolation all center planets coordinates
-*/
-std::map<std::string, std::vector<IntegrationVector>> Converter::interpolation_center_planet(Date* date_start, Date* date_end, double step, std::map<std::string, std::vector<IntegrationVector>> planets_position)
-{
-    std::map<std::string, std::vector<IntegrationVector>> interpolated_planet;
-    for (auto interpolation_planet : planets_position)
-    {
-        Date current_date = *date_start;
-        int last = 0;
-        std::vector<IntegrationVector> interpolated_center_planet;
-        while (current_date.get_MJD() < date_end->get_MJD() + 1)
-        {
-            for (int j = last; j < interpolation_planet.second.size(); j++)
-            {
-                if (current_date.get_MJD() < interpolation_planet.second[j].get_date().get_MJD())
-                {
-                    last = j - 1;
-                    BarycentricCoord interpolated_position_1 = interpolation_helper(interpolation_planet.second[j], interpolation_planet.second[j - 1], current_date);
-                    IntegrationVector interpolated_position;
-                    interpolated_position.set_date(current_date);
-                    interpolated_position.set_barycentric_position(interpolated_position_1.get_alpha(), interpolated_position_1.get_beta(), interpolated_position_1.get_gamma());
-                    interpolated_center_planet.push_back(interpolated_position);
-                    current_date.set_MJD(current_date.get_MJD() + step);
-                    break;
-                }
-            }
-        }
-        interpolated_planet[interpolation_planet.first] = interpolated_center_planet;
-    }
-
-    return interpolated_planet;
-}
-
-/*
-    Interpolation of Earth center coordinates
-*/
-BarycentricCoord Converter::interpolation_Earth_center(Date date_current, Date date_start, std::vector<IntegrationVector> earth_position)
-{
-    int i = int((date_current.get_MJD() - date_start.get_MJD()) / STEP) + 1;
-    BarycentricCoord interpolated_position = interpolation_helper(earth_position[i], earth_position[i - 1], date_current);
-    return interpolated_position;
-}
-
-BarycentricCoord Converter::interpolation_helper(IntegrationVector position_current, IntegrationVector position_previous, Date date)
-{
-    double f_current = position_current.get_barycentric_position().get_alpha();
-    double f_previous = position_previous.get_barycentric_position().get_alpha();
-    double t_current = position_current.get_date().get_MJD();
-    double t_previous = position_previous.get_date().get_MJD();
-    double t_interpolate = date.get_MJD();
-
-    double interpolation_alpha_term = f_previous + (f_current - f_previous) / (t_current - t_previous) * (t_interpolate - t_previous);
-
-    f_current = position_current.get_barycentric_position().get_beta();
-    f_previous = position_previous.get_barycentric_position().get_beta();
-    double interpolation_beta_term = f_previous + (f_current - f_previous) / (t_current - t_previous) * (t_interpolate - t_previous);
-
-    f_current = position_current.get_barycentric_position().get_gamma();
-    f_previous = position_previous.get_barycentric_position().get_gamma();
-    double interpolation_gamma_term = f_previous + (f_current - f_previous) / (t_current - t_previous) * (t_interpolate - t_previous);
-
-    BarycentricCoord interpolated_position;
-    interpolated_position.set_alpha(interpolation_alpha_term);
-    interpolated_position.set_beta(interpolation_beta_term);
-    interpolated_position.set_gamma(interpolation_gamma_term);
-    return interpolated_position;
-}

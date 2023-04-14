@@ -37,23 +37,34 @@ void Observation::set_declination_from_string(std::string value)
 }
 
 
-void Observation::set_spherical(double longitude, double latitude) 
+void Observation::set_spherical(double RA, double DEC) 
 {
-    this->spherical_position.set_right_ascension(longitude);
-    this->spherical_position.set_declination(latitude);
+    this->spherical_position.set_right_ascension(RA);
+    this->spherical_position.set_declination(DEC);
 }
 
 
-void Observation::set_barycentric(double alpha, double beta, double gamma) 
+void Observation::set_spherical(SphericalCoord coordinates)
 {
-    this->barycentric_position.set_alpha(alpha);
-    this->barycentric_position.set_beta(beta);
-    this->barycentric_position.set_gamma(gamma);
+    this->set_spherical(coordinates.get_right_ascension(), coordinates.get_declination());
+}
+
+
+void Observation::set_barycentric(double x, double y, double z) 
+{
+    this->barycentric_position.set_x(x);
+    this->barycentric_position.set_y(y);
+    this->barycentric_position.set_z(z);
 }
 
 void Observation::set_barycentric(BarycentricCoord coordinates)
 {
-    this->set_barycentric(coordinates.get_alpha(), coordinates.get_beta(), coordinates.get_gamma());
+    this->set_barycentric(coordinates.get_x(), coordinates.get_y(), coordinates.get_z());
+}
+
+void Observation::set_observatory_position(BarycentricCoord position)
+{
+    this->observatory_position = position;
 }
 
 
@@ -62,6 +73,11 @@ void Observation::set_geocentric(double x, double y, double z)
     this->geocentric_position.set_x(x);
     this->geocentric_position.set_y(y);
     this->geocentric_position.set_z(z);
+}
+
+void Observation::set_geocentric(GeocentricCoord coordinates)
+{
+    this->set_geocentric(coordinates.get_x(), coordinates.get_y(), coordinates.get_z());
 }
 
 
@@ -80,4 +96,9 @@ GeocentricCoord Observation::get_geocentric()
 BarycentricCoord Observation::get_barycentric() 
 {
     return this->barycentric_position;
+}
+
+BarycentricCoord Observation::get_observatory_position()
+{
+    return this->observatory_position;
 }

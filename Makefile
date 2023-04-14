@@ -1,13 +1,16 @@
 all: oumuamua
 
-oumuamua: libsofa.a main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o
-	g++ main.o Solution.o Converter.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o sofa/src/libsofa_c.a -o oumuamua
+oumuamua: libsofa.a main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o
+	g++ main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o sofa/src/libsofa_c.a -o oumuamua
 
 main.o: ./source/main.cpp
 	g++ -c ./source/main.cpp
 
 Solution.o: ./source/Solution.cpp
 	g++ -c ./source/Solution.cpp
+
+Interpolator.o: ./source/data_processing/Interpolator.cpp
+	g++ -c -w ./source/data_processing/Interpolator.cpp
 
 Converter.o: ./source/data_processing/Converter.cpp
 	g++ -c -w ./source/data_processing/Converter.cpp

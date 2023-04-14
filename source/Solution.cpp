@@ -1,17 +1,21 @@
 #include "Solution.h"
 
 
+
 Solution::Solution()
 {
     // initial values was taken from here: https://ssd.jpl.nasa.gov/horizons/app.html#/
-    initial_condition.set_barycentric_position(1.46966286538887E+08, 7.29982316871326E+07, 2.05657582369639E+07);
+    initial_condition.set_barycentric(1.46966286538887E+08, 7.29982316871326E+07, 2.05657582369639E+07);
     initial_condition.set_velocity((4.467714995410097E+01) * 86400, (3.759100797623457E+00) * 86400, (1.726983438363074E+01) * 86400); // km/c -> km/day
 
-    Converter converter;
+    Interpolator interpolator;
+    this->interpolator = interpolator;
+    Converter converter = { &this->interpolator };
     this->converter = converter;
-    LightCorrector light_corrector = { &this->converter };
+    LightCorrector light_corrector = { &this->converter, &this->interpolator };
     this->light_corrector = light_corrector;
 }
+
 
 
 void Solution::read_data()
@@ -36,6 +40,7 @@ void Solution::read_data()
 }
 
 
+
 // convert time, celestial -> spherical and spherical -> geocentric coordinates
 void Solution::convert_observations()
 {
@@ -46,7 +51,7 @@ void Solution::convert_observations()
         converter.spherical_hours_to_spherical_radians(data_reader.get_observation(ind));
         converter.barycentric_spherical_to_geocentric_cartesian(data_reader.get_observation(ind));
     }
-     converter.interpolation_time(data_reader.get_observations()->at(0).get_date(), data, data_reader.get_interpolation_time());
+     this->interpolator.interpolation_time(data_reader.get_observations()->at(0).get_date(), data, data_reader.get_interpolation_time());
 }
 
 
@@ -62,7 +67,7 @@ void Solution::convert_observatory()
 }
 
 
-void Solution::integrate() 
+void Solution::direct_problem() 
 {
     double step = STEP; // MJD step
     std::vector<IntegrationVector> model_measures;
@@ -73,18 +78,16 @@ void Solution::integrate()
     std::vector<SphericalCoord> model_spherical;
     std::vector<SphericalCoord> base_spherical;
 
-    std::map<std::string, std::vector<IntegrationVector>> map_planets = converter.interpolation_center_planet(data_reader.get_observations()->at(0).get_date(), data_reader.get_observations()->at(221).get_date(), step, data_reader.get_interpolation_planets());
+    std::map<std::string, std::vector<IntegrationVector>> map_planets = interpolator.interpolation_center_planet(data_reader.get_observations()->at(0).get_date(), data_reader.get_observations()->at(221).get_date(), step, data_reader.get_interpolation_planets());
     model_orbits = integration.dormand_prince(initial_condition, data_reader.get_observations()->at(0).get_date(), data_reader.get_observations()->at(221).get_date(), step, &map_planets);
     converter.cartesian_geocentric_to_cartesian_barycentric(data_reader.get_observations(), data_reader.get_obsevatory_map(), data_reader.get_earth_rotation_vector(), data_reader.get_interpolation_hubble(), map_planets["earth"]);
 
     // light time correction, gravitational deflection, abberation
-    light_corrector.light_correct(data_reader.get_observations(), data_reader.get_obsevatory_map(), &model_orbits, &map_planets["sun"], data_reader.get_earth_velocity_info());
-    //model_measures = converter.interpolation_model_on_grid(data_reader.get_observations_vector(), data_reader.get_observations()->at(0).get_date(), model_orbits);
+    light_corrector.light_correct(data_reader.get_observations(), &model_orbits, &map_planets["sun"], data_reader.get_earth_velocity_info());
+
     for (int i = 0; i < data_reader.get_observations()->size(); i++) {
         IntegrationVector new_vector;
-        new_vector.set_barycentric_position(data_reader.get_observations()->at(i).get_barycentric().get_alpha(), 
-                                            data_reader.get_observations()->at(i).get_barycentric().get_beta(), 
-                                            data_reader.get_observations()->at(i).get_barycentric().get_gamma());
+        new_vector.set_barycentric(data_reader.get_observations()->at(i).get_barycentric());
         new_vector.set_date(*data_reader.get_observations()->at(i).get_date());
         model_measures.push_back(new_vector);
     }
@@ -99,10 +102,13 @@ void Solution::integrate()
 }
 
 
+
 void Solution::write_result(std::vector<IntegrationVector>* model, std::vector<IntegrationVector>* base, std::vector<SphericalCoord>*model_spherical, std::vector<SphericalCoord>* base_spherical)
 {
     std::ofstream model_out;
+    std::ofstream model_barycentric_out;
     model_out.open(model_file);
+    model_barycentric_out.open("./output_data/model_barycentric.txt");
 
     int counter = 0;
     if (model_out.is_open())
@@ -111,10 +117,11 @@ void Solution::write_result(std::vector<IntegrationVector>* model, std::vector<I
         {
             counter += 1;
             model_out << std::setprecision(9) << model->at(ind).get_date().get_MJD() << "\tRA= " << model_spherical->at(ind).get_right_ascension() << "\tDEC= " << model_spherical->at(ind).get_declination() << '\n';
-            //model_out << model->at(ind).get_date().get_MJD() << "\t" << model->at(ind).get_barycentric_position().get_alpha() << "\t" << model->at(ind).get_barycentric_position().get_beta() <<
-            //    "\t" << model->at(ind).get_barycentric_position().get_gamma() << std::endl;
+            model_barycentric_out << std::setprecision(15) << model->at(ind).get_date().get_MJD() << "\tx= " << model->at(ind).get_barycentric().get_x() << "\ty= " << model->at(ind).get_barycentric().get_y() <<
+                "\tz= " << model->at(ind).get_barycentric().get_z() << std::endl;
         }
         model_out.close();
+        model_barycentric_out.close();
         std::cout << "Model:: " << counter << " strings was written in the file {" + model_file + "}" << std::endl;
         counter = 0;
     }
@@ -127,22 +134,21 @@ void Solution::write_result(std::vector<IntegrationVector>* model, std::vector<I
     
 
     std::ofstream base_out;
+    std::ofstream base_barycentric_out;
     base_out.open(base_file);
+    base_barycentric_out.open("./output_data/base_barycentric.txt");
 
     if (base_out.is_open())
     {
         for (int ind = 0; ind < base->size(); ind++)
         {
             counter += 1;
-            std::cout << "Diference between base and model measure (in km): "
-                << " alpha = " << std::abs(base->at(ind).get_barycentric_position().get_alpha() - model->at(ind).get_barycentric_position().get_alpha())
-                << " beta = " << std::abs(base->at(ind).get_barycentric_position().get_beta() - model->at(ind).get_barycentric_position().get_beta())
-                << " gamma = " << std::abs(base->at(ind).get_barycentric_position().get_gamma() - model->at(ind).get_barycentric_position().get_gamma()) << "\n\n";
-            //base_out << std::setprecision(15) << base->at(ind).get_date().get_MJD() << "\t" << base->at(ind).get_barycentric_position().get_alpha() << "\t" << base->at(ind).get_barycentric_position().get_beta() <<
-            //   "\t" << base->at(ind).get_barycentric_position().get_gamma() << std::endl;
+            base_barycentric_out << std::setprecision(15) << base->at(ind).get_date().get_MJD() << "\tx= " << base->at(ind).get_barycentric().get_x() << "\ty= " << base->at(ind).get_barycentric().get_y() <<
+               "\tz= " << base->at(ind).get_barycentric().get_z() << std::endl;
             base_out << std::setprecision(9) << base->at(ind).get_date().get_MJD() << "\tRA= " << base_spherical->at(ind).get_right_ascension() << "\tDEC= " << base_spherical->at(ind).get_declination() << "\n";
         }
         base_out.close();
+        base_barycentric_out.close();
         std::cout << "Base:: " << counter << " strings was written in the file {" + base_file + "}" << std::endl;
         counter = 0;
     }
@@ -160,30 +166,24 @@ std::vector<IntegrationVector> Solution::interolate_JPL()
 
     for (int i = 0; i < data_reader.get_observations_vector().size(); i++)
     {
-        //int j_1 = int((data_reader.get_observations_vector()[i].get_date()->get_MJD() - data_reader.get_observations_vector()[0].get_date()->get_MJD()) * 24);
-        //std::cout << "expected j" << j_1;
         for (int j = last; j < data_reader.get_JPL()->size(); j++)
         {
-            //std::cout << j << " IN j\n";
             if (data_reader.get_observations_vector().at(i).get_date()->get_MJD() < data_reader.get_JPL()->at(j).get_date()->get_MJD())
             {
                 last = j;
-                //std::cout << "\t getted j " << j << std::endl;
-                //std::cout << "in if\n";
                 IntegrationVector current_vector;
                 IntegrationVector previous_vector;
-                current_vector.set_barycentric_position(data_reader.get_JPL()->at(j+1).get_barycentric().get_alpha(), data_reader.get_JPL()->at(j+1).get_barycentric().get_beta(), data_reader.get_JPL()->at(j+1).get_barycentric().get_gamma());
-                previous_vector.set_barycentric_position(data_reader.get_JPL()->at(j).get_barycentric().get_alpha(), data_reader.get_JPL()->at(j).get_barycentric().get_beta(), data_reader.get_JPL()->at(j).get_barycentric().get_gamma());
+                current_vector.set_barycentric(data_reader.get_JPL()->at(j+1).get_barycentric().get_x(), data_reader.get_JPL()->at(j+1).get_barycentric().get_y(), data_reader.get_JPL()->at(j+1).get_barycentric().get_z());
+                previous_vector.set_barycentric(data_reader.get_JPL()->at(j).get_barycentric().get_x(), data_reader.get_JPL()->at(j).get_barycentric().get_y(), data_reader.get_JPL()->at(j).get_barycentric().get_z());
                 current_vector.set_date(*data_reader.get_JPL()->at(j + 1).get_date());
                 previous_vector.set_date(*data_reader.get_JPL()->at(j).get_date());
 
-                BarycentricCoord interpolated_position = converter.interpolation_helper(current_vector, previous_vector, *data_reader.get_observations_vector()[i].get_date());
+                BarycentricCoord interpolated_position = interpolator.interpolation_helper(*data_reader.get_observations_vector()[i].get_date(), current_vector, previous_vector);
 
-                //std::cout << previous_vector.get_barycentric_position().get_alpha() << " | " << interpolated_position.get_alpha() << " | " << current_vector.get_barycentric_position().get_alpha() << std::endl;
                 IntegrationVector current;
                 current.set_date(*data_reader.get_observations_vector()[i].get_date());
 
-                current.set_barycentric_position(interpolated_position.get_alpha(), interpolated_position.get_beta(), interpolated_position.get_gamma());
+                current.set_barycentric(interpolated_position.get_x(), interpolated_position.get_y(), interpolated_position.get_z());
                 result.push_back(current);
                 break;
             }
@@ -203,5 +203,5 @@ void Solution::act()
     read_data();
     convert_observations();
     convert_observatory();
-    integrate();
+    direct_problem();
 }

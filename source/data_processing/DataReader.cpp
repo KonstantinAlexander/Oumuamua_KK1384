@@ -19,21 +19,6 @@ void DataReader::read_observations()
                 observation.set_ascension_from_string(line.substr(32, 12));
                 observation.set_declination_from_string(line.substr(44, 12));
                 observations.push_back(observation);
-
-                //@CHECK
-                //std::cout << "line was: " <<
-                //    line.substr(15, 17) << " "
-                //    << line.substr(77, 3) << " " 
-                //    << line.substr(32, 12) << " "
-                //    << line.substr(44, 12) << "\n";
-
-                //std::cout << "observation: mjd=" << observation.get_date()->get_MJD() << " code=" << observation.get_code() << " RA="
-                //    << observation.get_spherical_position().get_RA_in_hours_system()[0] << " "
-                //    << observation.get_spherical_position().get_RA_in_hours_system()[1] << " "
-                //    << observation.get_spherical_position().get_RA_in_hours_system()[2] << " DEC="
-                //    << observation.get_spherical_position().get_DEC_in_hours_system()[0] << " "
-                //    << observation.get_spherical_position().get_DEC_in_hours_system()[1] << " "
-                //    << observation.get_spherical_position().get_DEC_in_hours_system()[2] << "\n\n\n";
             }
         }
     }
@@ -59,11 +44,10 @@ void DataReader::read_JPL_base_mesuare()
             JPL_date.set_MJD(std::stod(line.substr(0,17)) - 2400000.5);
             Observation observation;
             observation.set_date(JPL_date);
-            double alpha = std::stod(line.substr(52, 21));
-            double beta = std::stod(line.substr(76, 21));
-            double gamma = std::stod(line.substr(100, 21));
-            //std::cout << "alpha: " << alpha << "|" << line.substr(52, 21) << "\tbeta: " << beta << "|" << line.substr(76, 21) << "\tgamma: " << gamma << "|" << line.substr(100, 21) << std::endl;
-            observation.set_barycentric(alpha, beta, gamma);
+            double x = std::stod(line.substr(52, 21));
+            double y = std::stod(line.substr(76, 21));
+            double z = std::stod(line.substr(100, 21));
+            observation.set_barycentric(x, y, z);
             JPL_mesuare.push_back(observation);
         }
     }
@@ -93,20 +77,8 @@ void DataReader::read_observatory_data()
             observatory_position.set_longitude_from_string(line.substr(4, 9));
             observatory_position.set_cos_from_string(line.substr(13, 8));
             observatory_position.set_sin_from_string(line.substr(21, 9));
-
+            //@gotta insert convertation from cylindrical to baricetrical coords!
             observatory[code].set_cylindrical(observatory_position);
-
-            //@CHECK
-            /*std::cout << "line was: " << line.substr(0, 3) << " "
-                << line.substr(4, 9) << " " <<
-                line.substr(13, 8) << " " <<
-                line.substr(21, 9) << "\n";
-            
-            std::cout << "observatory: code=" << code << " "
-                << "longitude=" << observatory[code].get_cylindric().get_longitude() << " "
-                << "cos=" << observatory[code].get_cylindric().get_cos() << " "
-                << "sin=" << observatory[code].get_cylindric().get_sin() << "\n\n";*/
-
         }
     }
     else
@@ -194,7 +166,7 @@ void DataReader::read_interpolation_center_planet(std::string filename, std::str
             planet_data.set_date(date);
 
             std::vector<double> planet_position = help.split(line.substr(13, line.length() - 13), ' ', '\0');
-            planet_data.set_barycentric_position(planet_position[0], planet_position[1], planet_position[2]);
+            planet_data.set_barycentric(planet_position[0], planet_position[1], planet_position[2]);
             planet.push_back(planet_data);
         }
         std::cout << "Planet <" << name << "> read " << planet.size() << " \n";
