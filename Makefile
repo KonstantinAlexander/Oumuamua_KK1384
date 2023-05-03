@@ -1,7 +1,7 @@
 all: oumuamua
 
-oumuamua: libsofa.a main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o
-	g++ main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o sofa/src/libsofa_c.a -o oumuamua
+oumuamua: libsofa.a main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o ModelMeasure.o Matrix.o MatrixRow.o MNK.o
+	g++ main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o ModelMeasure.o  Matrix.o MatrixRow.o MNK.o sofa/src/libsofa_c.a -o oumuamua
 
 main.o: ./source/main.cpp
 	g++ -c ./source/main.cpp
@@ -62,6 +62,18 @@ InterpolationTime.o: ./source/measure/time/InterpolationTime.cpp
 
 LightCorrector.o: ./source/data_processing/LightCorrector.cpp
 	g++ -c ./source/data_processing/LightCorrector.cpp
+
+ModelMeasure.o: ./source/measure/data_structures/ModelMeasure.cpp
+	g++ -c ./source/measure/data_structures/ModelMeasure.cpp
+
+Matrix.o: ./source/data_processing/Matrix/Matrix.cpp
+	g++ -c ./source/data_processing/Matrix/Matrix.cpp
+
+MatrixRow.o: ./source/data_processing/Matrix/MatrixRow.cpp
+	g++ -c ./source/data_processing/Matrix/MatrixRow.cpp
+
+MNK.o: ./source/data_processing/MNK.cpp
+	g++ -c ./source/data_processing/MNK.cpp
 
 libsofa.a:
 	$(MAKE) -C ./sofa/src

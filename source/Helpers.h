@@ -15,7 +15,7 @@
 #define EARTH_RADIUS 6378.140
 #define LIGHT_SPEED 25902068371.2 // km / h * 24 = km / day
 #define PI 3.14159265358979323846
-#define STEP 0.001
+#define STEP 0.005
 
 class Helpers
 {
@@ -59,6 +59,12 @@ public:
     double POW_3(double value)
     {
         return value * value * value;
+    }
+
+
+    double POW_N(double value, int degrees)
+    {
+        return pow(value, degrees);
     }
 
 

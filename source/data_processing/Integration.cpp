@@ -4,6 +4,7 @@
 IntegrationVector Integration::derivate_function(IntegrationVector current_condition, std::map<std::string, std::vector<IntegrationVector>>* planets)
 {
     IntegrationVector d_vector;
+    BarycentricCoord Oumuamua_coordinates = current_condition.get_barycentric();
     BarycentricCoord a; // acceleration
 
     int idx = int((current_condition.get_date().get_MJD() - this->date_start.get_MJD()) / STEP); // search for needed time
@@ -11,19 +12,86 @@ IntegrationVector Integration::derivate_function(IntegrationVector current_condi
     for (std::string planet_name : this->planet_list)
     {
         BarycentricCoord planet_coordinates = planets->at(planet_name)[idx].get_barycentric();
-        BarycentricCoord Oumuamua_coordinates = current_condition.get_barycentric();
         // Newton's formula:
         //                    -->
-        //  a = dv / dx = GM * ri / ri ^ 3
-        
+        //  a = dv / dt = GM * ri / |ri| ^ 3
+
         a = a + this->GM[planet_name] * (planet_coordinates - Oumuamua_coordinates) / help.POW_3((planet_coordinates - Oumuamua_coordinates).length());
     }
 
     d_vector.set_barycentric(current_condition.get_velocity().get_vx(), current_condition.get_velocity().get_vy(), current_condition.get_velocity().get_vz());
     d_vector.set_velocity(a.get_x(), a.get_y(), a.get_z());
 
+    this->calculate_partial_derivates(&current_condition, d_vector.get_df_dx(), planets); // save partial derivates in df_dx
+   
+    /*
+        df/db = (dv/dx0 dv/dv0) = (0 0)
+                (da/dx0 da/dv0)   (0 0)
+    */
+    Matrix df_db(6, 6); // zero matrix
+
+    // dx/db = dx/dx0 = df/dx * dx/dx0 + df/db
+    Matrix dx_db = (*d_vector.get_df_dx()) * (*current_condition.get_dx_db()) + df_db;
+    d_vector.set_dx_db(dx_db);
+
     return d_vector;
 }
+
+
+
+void Integration::calculate_partial_derivates(IntegrationVector* current_condition, Matrix* partial_derivates, std::map<std::string, std::vector<IntegrationVector>>* planets)
+{
+        /*
+            This method used for calculate dF/dX = ( dv/dx, dv/dv ) = ( 0,    E)
+                                                   ( da/dx, da/dv )   (da/dx, 0)
+        */
+        for (int row_idx = 0; row_idx < 3; row_idx++)
+        {
+            for (int column_idx = 3; column_idx < 6; column_idx++)
+            {
+                if (column_idx == row_idx + 3)
+                {
+                    (*partial_derivates)[row_idx][column_idx] = 1;
+                }
+            }
+        }
+
+        double dax[3] = { 0, 0, 0 }; // dax / dx, dax / dy, dax / dz
+        double day[3] = { 0, 0, 0 }; // day / dx, day / dy, day / dx
+        double daz[3] = { 0, 0, 0 }; // daz / dx, daz / dy, daz / dz
+
+        int idx = int((current_condition->get_date().get_MJD() - this->date_start.get_MJD()) / STEP); // search for needed time
+        BarycentricCoord Oumuamua_coordinates = current_condition->get_barycentric();
+        for (std::string planet_name : this->planet_list)
+        {
+            BarycentricCoord planet_coordinates = planets->at(planet_name)[idx].get_barycentric();
+            double length = (planet_coordinates - Oumuamua_coordinates).length();
+            dax[0] = dax[0] - this->GM[planet_name] / help.POW_N(length, 3) + 3 * this->GM[planet_name] * help.POW_N(planet_coordinates.get_x() - Oumuamua_coordinates.get_x(), 2) / help.POW_N(length, 5);
+            dax[1] = dax[1] + 3 * this->GM[planet_name] * (planet_coordinates.get_x() - Oumuamua_coordinates.get_x()) * (planet_coordinates.get_y() - Oumuamua_coordinates.get_y()) / help.POW_N(length, 5);
+            dax[2] = dax[2] + 3 * this->GM[planet_name] * (planet_coordinates.get_x() - Oumuamua_coordinates.get_x()) * (planet_coordinates.get_z() - Oumuamua_coordinates.get_z()) / help.POW_N(length, 5);
+
+            day[0] = day[0] + 3 * this->GM[planet_name] * (planet_coordinates.get_y() - Oumuamua_coordinates.get_y()) * (planet_coordinates.get_x() - Oumuamua_coordinates.get_x()) / help.POW_N(length, 5);
+            day[1] = day[1] - this->GM[planet_name] / help.POW_N(length, 3) + 3 * this->GM[planet_name] * help.POW_N(planet_coordinates.get_y() - Oumuamua_coordinates.get_y(), 2) / help.POW_N(length, 5);
+            day[2] = day[2] + 3 * this->GM[planet_name] * (planet_coordinates.get_y() - Oumuamua_coordinates.get_y()) * (planet_coordinates.get_z() - Oumuamua_coordinates.get_z()) / help.POW_N(length, 5);
+
+            daz[0] = daz[0] + 3 * this->GM[planet_name] * (planet_coordinates.get_z() - Oumuamua_coordinates.get_z()) * (planet_coordinates.get_x() - Oumuamua_coordinates.get_x()) / help.POW_N(length, 5);
+            daz[1] = daz[1] + 3 * this->GM[planet_name] * (planet_coordinates.get_z() - Oumuamua_coordinates.get_z()) * (planet_coordinates.get_y() - Oumuamua_coordinates.get_y()) / help.POW_N(length, 5);
+            daz[2] = daz[2] - this->GM[planet_name] / help.POW_N(length, 3) + 3 * this->GM[planet_name] * help.POW_N(planet_coordinates.get_z() - Oumuamua_coordinates.get_z(), 2) / help.POW_N(length, 5);
+        }
+
+        (*partial_derivates)[3][0] = dax[0];
+        (*partial_derivates)[3][1] = dax[1];
+        (*partial_derivates)[3][2] = dax[2];
+
+        (*partial_derivates)[4][0] = day[0];
+        (*partial_derivates)[4][1] = day[1];
+        (*partial_derivates)[4][2] = day[2];
+
+        (*partial_derivates)[5][0] = daz[0];
+        (*partial_derivates)[5][1] = daz[1];
+        (*partial_derivates)[5][2] = daz[2];
+}
+
 
 
 /*
@@ -36,7 +104,7 @@ std::vector<IntegrationVector> Integration::dormand_prince(IntegrationVector ini
 
     IntegrationVector new_condition = initial_condition;
     new_condition.set_date(*start);
-    result.push_back(new_condition);
+    new_condition.get_dx_db()->make_identity(); // dx0/dx0 = E
     this->date_start = *start;
 
     for (double t = start->get_MJD(); t <= end->get_MJD() + step; t += step)
