@@ -220,6 +220,7 @@ void Solution::inverse_problem()
 
         for (int j = 0; j < 6; j++)
         {
+            A[2 * i][j] = (*this->model_measures[i].get_dr_db())[0][j];  // RA row in matrix
             A[2 * i + 1][j] = (*this->model_measures[i].get_dr_db())[1][j]; // the next is DEC row
         }
 
