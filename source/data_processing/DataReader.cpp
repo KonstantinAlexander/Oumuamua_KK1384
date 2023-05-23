@@ -4,22 +4,40 @@
 void DataReader::read_observations() 
 {
     std::ifstream file(this->observations_file);
-    std::string line;
+    int observation_number = 0;
 
     if (file.is_open())
     {
-        while (getline(file, line)) 
+        while (!file.eof()) 
         {
-            if (line[14] != 's') 
+            observation_number++;
+            Observation observation;
+            int year, month;
+            double day, tmp;
+            double RA_in_hours_systems[3];
+            double DEC_in_degrees_systems[3];
+            std::string observatory_code;
+            file >> year >> month >> day;
+            file >> RA_in_hours_systems[0] >> RA_in_hours_systems[1] >> RA_in_hours_systems[2];
+            file >> DEC_in_degrees_systems[0] >> DEC_in_degrees_systems[1] >> DEC_in_degrees_systems[2];
+
+            if (!((observation_number >= 183 && observation_number <= 192) || (observation_number >= 198 && observation_number <= 202) || (observation_number >= 208))) 
             {
-                Date observation_date(line.substr(15, 17));
-                Observation observation;
-                observation.set_date(observation_date);
-                observation.set_code(line.substr(77, 3));
-                observation.set_ascension_from_string(line.substr(32, 12));
-                observation.set_declination_from_string(line.substr(44, 12));
-                observations.push_back(observation);
+                file >> tmp >> tmp >> tmp >> tmp >> tmp >> tmp;
             }
+
+            file >> observatory_code;
+
+            std::string date_line;
+            date_line = std::to_string(year) + " " + std::to_string(month) + " " + std::to_string(day);
+            Date date(date_line);
+            
+            observation.set_date(date_line);
+            observation.set_RA_in_hours_systems(RA_in_hours_systems[0], RA_in_hours_systems[1], RA_in_hours_systems[2]);
+            observation.set_DEC_in_degrees_systems(DEC_in_degrees_systems[0], DEC_in_degrees_systems[1], DEC_in_degrees_systems[2]);
+            observation.set_code(observatory_code);
+
+            observations.push_back(observation);
         }
     }
     else
@@ -31,7 +49,8 @@ void DataReader::read_observations()
     std::cout << "Observation read: " << observations.size() << " \n";
 }
 
-void DataReader::read_JPL_base_mesuare()
+
+void DataReader::read_JPL_base_measuare()
 {
     std::ifstream file(this->JPL_mesuare_file);
     std::string line;
@@ -131,13 +150,16 @@ void DataReader::read_interpolation_time_data()
 
     if (file.is_open())
     {
-        while (getline(file, line)) 
+        while (!file.eof()) 
         {
-            InterpolationTime time;
-            Date observation_date(line.substr(0, 12));
-            time.set_date(observation_date);
-            time.set_TT_TDB(line.substr(13, 9));
-            interpolation_time.push_back(time);
+            InterpolationTime interpolation_time;
+            Date date;
+            double time, tdb_tt;
+            file >> time >> tdb_tt;
+            date.set_MJD(time - JD_TO_MJD);
+            interpolation_time.set_date(date);
+            interpolation_time.set_TT_TDB(tdb_tt);
+            this->interpolation_time.push_back(interpolation_time);
         }
     }
     else
@@ -150,24 +172,32 @@ void DataReader::read_interpolation_time_data()
 }
 
 
-
 void DataReader::read_interpolation_center_planet(std::string filename, std::string name)
 {
     std::ifstream file(filename);
-    std::string line;
 
     if (file.is_open())
     {
         std::vector<IntegrationVector> planet;
-        while (getline(file, line))
+        while (!file.eof())
         {
             IntegrationVector planet_data;
-            Date date(line.substr(0, 13));
+            double time, x, y, z, vx, vy, vz;
+            file >> time >> x >> y >> z >> vx >> vy >> vz;
+            
+            Date date;
+            date.set_MJD(time - JD_TO_MJD);
             planet_data.set_date(date);
-
-            std::vector<double> planet_position = help.split(line.substr(13, line.length() - 13), ' ', '\0');
-            planet_data.set_barycentric(planet_position[0], planet_position[1], planet_position[2]);
+            planet_data.set_barycentric(x, y, z);
             planet.push_back(planet_data);
+
+            if (name == "earth")
+            {
+                IntegrationVector earth_velocity_info;
+                earth_velocity_info.set_date(date);
+                earth_velocity_info.set_velocity(vx / 86400, vy / 86400, vz / 86400);
+                this->earth_velocity.push_back(earth_velocity_info);
+            }
         }
         std::cout << "Planet <" << name << "> read " << planet.size() << " \n";
         InterpolationPlanets[name] = planet;
@@ -176,70 +206,48 @@ void DataReader::read_interpolation_center_planet(std::string filename, std::str
     {
         std::cout << "Error reading file! {" << filename << "}\n";
     }
-
-    file.close();
 }
-
-
-
-void DataReader::read_earth_velocity()
-{
-    std::ifstream file(earth_velocity_file);
-    std::string line;
-
-    if (file.is_open())
-    {
-        IntegrationVector vector;
-        int year, month;
-        double day_fraction;
-        double vx;
-        double vy;
-        double vz;
-        file >> year >> month >> day_fraction >> vx >> vy >> vz;
-        std::string date_line;
-        date_line = std::to_string(year) + " " + std::to_string(month) + " " + std::to_string(day_fraction) + '\0';
-        Date date(date_line);
-        vector.set_date(date);
-        vector.set_velocity(vx, vy, vz);
-        earth_velocity.push_back(vector);
-
-        while (getline(file, line)) {
-            file >> year >> month >> day_fraction >> vx >> vy >> vz;
-            std::string date_line;
-            date_line = std::to_string(year) + " " + std::to_string(month) + " " + std::to_string(day_fraction) + '\0';
-            Date date(date_line);
-            vector.set_date(date);
-            vector.set_velocity(vx, vy, vz);
-            earth_velocity.push_back(vector);
-        }
-
-        std::cout << "Earth velocity information read " << earth_velocity.size() << " \n";
-    }
-    else
-    {
-        std::cout << "Error reading file! {" << earth_velocity_file << "}\n";
-    }
-}
-
 
 
 void DataReader::read_earth_rotation()
 {
-    std::ifstream file(earth_rotation_file);
-    std::string data_line;
+    std::ifstream file(this->observations_file);
+    int observation_number = 0;
 
     if (file.is_open())
     {
-        while (getline(file, data_line))
+        while (!file.eof())
         {
-            EarthRotation rotation;
+            observation_number++;
+            if (!((observation_number >= 183 && observation_number <= 192) || (observation_number >= 198 && observation_number <= 202) || (observation_number >= 208)))
+            {
+                int year, month;
+                double day, tmp, xp, yp, UT1_UTC;
+                std::string code;
+                file >> year >> month >> day;
+                file >> tmp >> tmp >> tmp >> tmp >> tmp >> tmp >> tmp >> tmp >> tmp; // skip reading ra and dec and observatory data
+                file >> xp >> yp >> UT1_UTC;
+                file >> code;
 
-            rotation.set_MJD(std::stoi(data_line.substr(14, 5)));
-            rotation.set_x(std::stod(data_line.substr(22, 8)));
-            rotation.set_y(std::stod(data_line.substr(33, 8)));
-            rotation.set_UT1_UTC(std::stod(data_line.substr(44, 9)));
-            
-            earth_rotation.push_back(rotation);
+                EarthRotation rotation;
+                std::string date_line;
+                date_line = std::to_string(year) + " " + std::to_string(month) + " " + std::to_string(day);
+                Date date(date_line);
+
+                rotation.set_MJD(date.get_MJD());
+                rotation.set_x(xp);
+                rotation.set_y(yp);
+                rotation.set_UT1_UTC(UT1_UTC);
+
+                earth_rotation.push_back(rotation);
+            }
+            else {
+                int year, month;
+                double day, tmp;
+                std::string code;
+                file >> year >> month >> day;
+                file >> tmp >> tmp >> tmp >> tmp >> tmp >> tmp >> code;
+            }
         }
     }
     else
@@ -253,9 +261,9 @@ void DataReader::read_earth_rotation()
 
 
 
-std::vector<InterpolationTime> DataReader::get_interpolation_time() 
+std::vector<InterpolationTime>* DataReader::get_interpolation_time() 
 {
-    return interpolation_time;
+    return &interpolation_time;
 }
 
 
@@ -271,9 +279,9 @@ std::vector<Observation>* DataReader::get_observations()
 }
 
 
-std::map<std::string, std::vector<IntegrationVector>> DataReader::get_interpolation_planets() 
+std::map<std::string, std::vector<IntegrationVector>>* DataReader::get_interpolation_planets() 
 {
-    return InterpolationPlanets;
+    return &this->InterpolationPlanets;
 }
 
 

@@ -15,7 +15,10 @@
 #define EARTH_RADIUS 6378.140
 #define LIGHT_SPEED 25902068371.2 // km / h * 24 = km / day
 #define PI 3.14159265358979323846
-#define STEP 0.05
+#define JD_TO_MJD 2400000.5
+#define STEP 0.0013888889
+#define START_DATE 58040.4375
+
 
 class Helpers
 {
