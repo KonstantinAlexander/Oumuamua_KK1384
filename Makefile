@@ -1,7 +1,7 @@
 all: oumuamua
 
-oumuamua: libsofa.a main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o ModelMeasure.o Matrix.o MatrixRow.o MNK.o
-	g++ main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o HubbleData.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o ModelMeasure.o  Matrix.o MatrixRow.o MNK.o sofa/src/libsofa_c.a -o oumuamua
+oumuamua: libsofa.a main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o ModelMeasure.o Matrix.o MatrixRow.o MNK.o
+	g++ main.o Solution.o Converter.o Interpolator.o DataReader.o Integration.o BarycentricCoord.o CartesianCoord.o CylindricalCoord.o GeocentricCoord.o Observation.o Observatory.o SphericalCoord.o EarthRotation.o IntegrationVector.o Velocity.o Date.o InterpolationTime.o LightCorrector.o ModelMeasure.o  Matrix.o MatrixRow.o MNK.o sofa/src/libsofa_c.a -o oumuamua
 
 main.o: ./source/main.cpp
 	g++ -c ./source/main.cpp
@@ -44,9 +44,6 @@ SphericalCoord.o: ./source/measure/coords/SphericalCoord.cpp
 
 EarthRotation.o: ./source/measure/data_structures/EarthRotation.cpp
 	g++ -c ./source/measure/data_structures/EarthRotation.cpp
-
-HubbleData.o: ./source/measure/data_structures/HubbleData.cpp
-	g++ -c ./source/measure/data_structures/HubbleData.cpp
 
 IntegrationVector.o: ./source/measure/data_structures/IntegrationVector.cpp
 	g++ -c ./source/measure/data_structures/IntegrationVector.cpp

@@ -52,7 +52,7 @@ void DataReader::read_observations()
 
 void DataReader::read_JPL_base_measuare()
 {
-    std::ifstream file(this->JPL_mesuare_file);
+    std::ifstream file(this->JPL_measuare_file);
     std::string line;
 
     if (file.is_open())
@@ -60,22 +60,26 @@ void DataReader::read_JPL_base_measuare()
         while (getline(file, line))
         {
             Date JPL_date;
-            JPL_date.set_MJD(std::stod(line.substr(0,17)) - 2400000.5);
-            Observation observation;
+            JPL_date.set_MJD(std::stod(line.substr(0,17)) - JD_TO_MJD);
+            IntegrationVector observation;
             observation.set_date(JPL_date);
-            double x = std::stod(line.substr(52, 21));
-            double y = std::stod(line.substr(76, 21));
-            double z = std::stod(line.substr(100, 21));
+            double x = std::stod(line.substr(20, 21));
+            double y = std::stod(line.substr(44, 21));
+            double z = std::stod(line.substr(68, 21));
+            double vx = std::stod(line.substr(92, 21));
+            double vy = std::stod(line.substr(116, 21));
+            double vz = std::stod(line.substr(140, 21));
             observation.set_barycentric(x, y, z);
-            JPL_mesuare.push_back(observation);
+            observation.set_velocity(vx, vy, vz);
+            JPL_measuare.push_back(observation);
         }
     }
     else
     {
-        std::cout << "Error reading file! {" << JPL_mesuare_file << "}\n";
+        std::cout << "Error reading file! {" << JPL_measuare_file << "}\n";
     }
     file.close();
-    std::cout << "JPL_mesuare read: " << JPL_mesuare.size() << " \n";
+    std::cout << "JPL_measuare read: " << JPL_measuare.size() << " \n";
 }
 
 
@@ -114,22 +118,23 @@ void DataReader::read_observatory_data()
 void DataReader::read_hubble_data()
 {
     std::ifstream file(hubble_file);
-    std::string line;
 
     if (file.is_open())
     {
-        while (getline(file, line))
+        while (!file.eof())
         {
-            GeocentricCoord hubble_position;
-            hubble_position.set_from_string(line.substr(25, line.length() - 25));
+            IntegrationVector hubble_info;
+            BarycentricCoord hubble_position;
+            double JD, x, y, z, vx, vy, vz;
+            file >> JD >> x >> y >> z >> vx >> vy >> vz;
+            Date time;
+            time.set_MJD(JD - JD_TO_MJD);
+            hubble_position.set_all_coords(x, y, z);
 
-            Date hubble_date(line.substr(0, 10));
-            hubble_date.set_UTC_from_string(line.substr(11, 13));
+            hubble_info.set_date(time);
+            hubble_info.set_barycentric(hubble_position);
 
-            HubbleData hubble;
-            hubble.set_date(hubble_date);
-            hubble.set_geocentric(hubble_position);
-            interpolation_hubble.push_back(hubble);
+            hubble_data.push_back(hubble_info);
         }
     }
     else
@@ -138,41 +143,41 @@ void DataReader::read_hubble_data()
     }
 
     file.close();
-    std::cout << "Hubble read: " << interpolation_hubble.size() << " \n";
+    std::cout << "Hubble read: " << hubble_data.size() << " \n";
 }
 
 
 
-void DataReader::read_interpolation_time_data()
+void DataReader::read_TT_TDB_data()
 {
-    std::ifstream file(interpolation_time_file);
+    std::ifstream file(TT_TDB_file);
     std::string line;
 
     if (file.is_open())
     {
         while (!file.eof()) 
         {
-            InterpolationTime interpolation_time;
+            TT_TDB_obj interpolation_time;
             Date date;
             double time, tdb_tt;
             file >> time >> tdb_tt;
             date.set_MJD(time - JD_TO_MJD);
             interpolation_time.set_date(date);
             interpolation_time.set_TT_TDB(tdb_tt);
-            this->interpolation_time.push_back(interpolation_time);
+            this->TT_TDB_data.push_back(interpolation_time);
         }
     }
     else
     {
-        std::cout << "Error reading file! {" << interpolation_time_file << "}\n";
+        std::cout << "Error reading file! {" << TT_TDB_file << "}\n";
     }
 
     file.close();
-    std::cout << "Interpolation time read: " << interpolation_time.size() << " \n";
+    std::cout << "Interpolation time read: " << TT_TDB_data.size() << " \n";
 }
 
 
-void DataReader::read_interpolation_center_planet(std::string filename, std::string name)
+void DataReader::read_planet_data(std::string filename, std::string name)
 {
     std::ifstream file(filename);
 
@@ -200,7 +205,7 @@ void DataReader::read_interpolation_center_planet(std::string filename, std::str
             }
         }
         std::cout << "Planet <" << name << "> read " << planet.size() << " \n";
-        InterpolationPlanets[name] = planet;
+        planets_data[name] = planet;
     }
     else
     {
@@ -261,15 +266,15 @@ void DataReader::read_earth_rotation()
 
 
 
-std::vector<InterpolationTime>* DataReader::get_interpolation_time() 
+std::vector<TT_TDB_obj>* DataReader::get_TT_TDB_data() 
 {
-    return &interpolation_time;
+    return &TT_TDB_data;
 }
 
 
-std::vector<IntegrationVector> DataReader::get_interpolation_earth() 
+std::vector<IntegrationVector> DataReader::get_earth_data() 
 {
-    return InterpolationPlanets["earth"];
+    return planets_data["earth"];
 }
 
 
@@ -279,9 +284,9 @@ std::vector<Observation>* DataReader::get_observations()
 }
 
 
-std::map<std::string, std::vector<IntegrationVector>>* DataReader::get_interpolation_planets() 
+std::map<std::string, std::vector<IntegrationVector>>* DataReader::get_planets_data() 
 {
-    return &this->InterpolationPlanets;
+    return &this->planets_data;
 }
 
 
@@ -309,9 +314,9 @@ std::map<std::string, Observatory> DataReader::get_observatory()
 }
 
 
-std::vector<HubbleData> DataReader::get_interpolation_hubble() 
+std::vector<IntegrationVector>* DataReader::get_hubble_data() 
 {
-    return interpolation_hubble;
+    return &this->hubble_data;
 }
 
 
@@ -323,9 +328,9 @@ Observatory* DataReader::get_observatory_data_by_code(std::string code)
 
 std::vector<IntegrationVector>* DataReader::get_planet_by_name(std::string name) 
 {
-    if (InterpolationPlanets.find(name) != InterpolationPlanets.end()) 
+    if (planets_data.find(name) != planets_data.end()) 
     {
-        return &InterpolationPlanets[name];
+        return &planets_data[name];
     }
     return nullptr;
 }
@@ -336,9 +341,9 @@ std::map<std::string, Observatory>* DataReader::get_obsevatory_map()
     return &observatory;
 }
 
-std::vector<Observation>* DataReader::get_JPL()
+std::vector<IntegrationVector>* DataReader::get_JPL()
 {
-    return &this->JPL_mesuare;
+    return &this->JPL_measuare;
 }
 
 std::vector<IntegrationVector>* DataReader::get_earth_velocity_info()
