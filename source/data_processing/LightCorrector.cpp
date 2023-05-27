@@ -42,6 +42,7 @@ void LightCorrector::light_correct(std::vector<Observation>* observations, std::
 			this->corrected_position[i] = observer_to_body[i];
 		}
 		
+		/*
 		time.set_MJD(t + delta);
 		this->gravitational_deflection(&object_position, &observatory_position, &sun_position);
 		Velocity earth_velocity = interpolator->find_earth_velocity(time, earth_velocity_info);
@@ -83,7 +84,7 @@ void LightCorrector::light_correct(std::vector<Observation>* observations, std::
 		{
 			this->corrected_position[i] = new_pos[i];
 		}
-
+		*/
 		ModelMeasure new_state;
 		new_state.set_barycentric(this->corrected_position[0], this->corrected_position[1], this->corrected_position[2]);
 
